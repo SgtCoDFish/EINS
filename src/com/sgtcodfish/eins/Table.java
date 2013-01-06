@@ -182,7 +182,8 @@ public class Table {
 	
 	/**
 	 * CardEntity subclasses call this function to play a card c. The CardEntity.playCard function performs correctly and removes the card from the player's hand.
-	 * @param c The card to play.
+	 * @param ent The entity that wants to play a card.
+	 * @param ncard The card they wish to play.
 	 * @throws IllegalArgumentException
 	 */
 	public void playCard(CardEntity ent, Card ncard) throws IllegalArgumentException {

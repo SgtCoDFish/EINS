@@ -110,7 +110,7 @@ public class Card implements Cloneable {
 	 * Creates a card, assumed to be type NUMBER since this is the only type which needs a value.
 	 * @param val The value to assign the card (VAL_BOUND_LOWER-VAL_BOUND_UPPER inclusive). Throws exception if val < VAL_BOUND_LOWER, or val > VAL_BOUND_UPPER.
 	 * @param ncol The colour of the card. Throws exception if ncol == CardColour.BLACK (since BLACK cards cannot be NUMBER types).
-	 * @trrows IllegalArgumentException
+	 * @throws IllegalArgumentException
 	 */
 	public Card(int val, CardColour ncol) {
 		type = CardType.NUMBER;
