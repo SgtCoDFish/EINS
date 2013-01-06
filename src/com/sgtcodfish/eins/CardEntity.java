@@ -75,7 +75,6 @@ abstract public class CardEntity {
 	
 	/**
 	 * Attempt to play a {@link Card} c by placing it on the specified {@link Pile}. Protected since it should only be called from within a doTurn().
-	 * @param p The pile to which we should add the card.
 	 * @param c The card to play, which the player must have in their hand.
 	 * @throws IllegalArgumentException
 	 * @throws IllegalStateException
@@ -221,7 +220,7 @@ abstract public class CardEntity {
 	}
 	
 	/**
-	 * Checks all players for their card counts. See {@link Table.accuseEins}.
+	 * Checks all players for their card counts. See {@link Table}'s accuseEins() function.
 	 */
 	public void accuseEins() {
 		table.accuseEins(this);

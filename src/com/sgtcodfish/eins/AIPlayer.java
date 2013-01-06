@@ -68,7 +68,7 @@ public class AIPlayer extends CardEntity {
 	}
 	
 	/**
-	 * Execute a turn regularly. See {@link AIDifficulty} for a description of what constitues "REGULAR" AI.
+	 * Execute a turn regularly. See AIDifficulty for a description of what constitues "REGULAR" AI.
 	 */
 	protected void doTurnRegular() {
 		// loop through cards to establish legal moves, and then play a random legal card. If no legal moves exist, draw a card.
@@ -133,7 +133,7 @@ public class AIPlayer extends CardEntity {
 	}
 	
 	/**
-	 * Execute a turn in the best way possible for the AI. See {@link AIDifficulty} for a description of what constitues "BEST" AI.
+	 * Execute a turn in the best way possible for the AI. See AIDifficulty for a description of what constitues "BEST" AI.
 	 * @throws IllegalStateException 
 	 * @throws IllegalArgumentException 
 	 */
