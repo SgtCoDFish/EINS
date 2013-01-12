@@ -25,7 +25,6 @@ public class HumanPlayer extends CardEntity {
 	/**
 	 * Executes a turn by asking the player for appropriate input to choose a move to make.
 	 */
-	@SuppressWarnings("resource")
 	@Override
 	public void doTurn() {
 		Scanner scanner = new Scanner(System.in);
@@ -195,7 +194,7 @@ public class HumanPlayer extends CardEntity {
 		}
 		
 		System.out.println("~~~~~");
-//		scanner.close();
+		if(scanner != null) scanner.close();
 	}
 	
 	/**
