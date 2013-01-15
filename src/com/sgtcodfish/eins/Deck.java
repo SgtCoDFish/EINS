@@ -72,7 +72,7 @@ public class Deck {
 				cards.add(new Card(CardType.CHANGECOLFOUR, CardColour.BLACK));
 			}
 		} catch (IllegalArgumentException ie) {
-			System.out.println("Illegal Argument in Deck(): " + ie);
+			table.getIOHandler().printErrorln("Illegal Argument in Deck(): " + ie);
 		}
 	}
 	
@@ -124,10 +124,22 @@ public class Deck {
 	 */
 	public void printDeck() {
 		int cloop = 0;
+		StringBuffer bf = new StringBuffer();
 		for(Card c : cards) {
 			cloop++;
-			System.out.format("#%03d:", cloop);
-			System.out.println(c);
+			
+			if(cloop < 100) { // ensure we have a width of 3 when outputting cloop.
+				if(cloop >= 10) { // 10 <= cloop <= 99 so add a single 0 to the beginning.
+					bf.append("0");
+				} else {
+					bf.append("00"); // 1 <= cloop <= 9 so add 2 zeroes.
+				}
+			}
+			
+			bf.append(cloop);
+			bf.append(": ");
+			bf.append(c.toString());
+			table.getIOHandler().println(bf.toString());
 		}
 	}
 	
@@ -142,11 +154,16 @@ public class Deck {
 		} else if(crd == null) {
 			throw new IllegalArgumentException("Trying to reseed a deck with a null stack of cards!");
 		} else {
-			System.out.println("The deck was exhausted, so the pile is turned over.\n");
+			table.getIOHandler().println("The deck was exhausted, so the pile is turned over.\n");
 		}
 		
-		for(int i = 0; i < crd.size(); i++) {
+		while(crd.size() > 0) {
 			cards.add(crd.pop());
 		}
+		System.out.println("DECKDECKDECK");
+		for(Card c : cards) {
+			System.out.println(c);
+		}
+		System.out.println("PILEPILEPILE");
 	}
 }

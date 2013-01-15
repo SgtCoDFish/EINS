@@ -2,7 +2,6 @@ package com.sgtcodfish.eins;
 
 import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
-import java.util.Scanner;
 import java.util.Vector;
 
 import com.sgtcodfish.eins.Card.CardColour;
@@ -13,6 +12,9 @@ import com.sgtcodfish.eins.Card.CardColour;
  */
 public class HumanPlayer extends CardEntity {
 	protected String name;
+	
+	protected boolean didAccuse = false; // true if the player accused others of saying EINS this turn. Protects against humans drawing the whole deck.
+	protected boolean didSayEINS = false; // true if the player shouted EINS this turn. Protects against humans drawing the whole deck.
 	
 	/**
 	 * Creates a player with the name nname
@@ -27,14 +29,15 @@ public class HumanPlayer extends CardEntity {
 	 */
 	@Override
 	public void doTurn() {
-		Scanner scanner = new Scanner(System.in);
 		Vector<Card> legal = null;
 		int clooper = 1;
 		int lsize = -1;
 		int userInput = -1;
 		boolean reprint = true; // true if the player's hand might've been changed since they last saw it and they'll need to have it printed again.
+		didSayEINS = false;
+		didAccuse = false;
 		
-		System.out.println("~~~~~");
+		table.getIOHandler().println("~~~~~");
 		
 		do {
 			if(reprint) {
@@ -51,7 +54,7 @@ public class HumanPlayer extends CardEntity {
 				
 				// we now have a list of legal moves, and we need to output them if we have at least one, or failing that give the player the option to draw a card.
 				printHand();
-				System.out.println();
+				table.getIOHandler().print("\n");
 				
 				//System.out.println("Current card in play: " + table.getPile().getTopCard());
 				lsize = legal.size(); // for speed reasons
@@ -61,81 +64,84 @@ public class HumanPlayer extends CardEntity {
 			
 			clooper = 1;
 			if(lsize >= 1) {
-				System.out.println("Your options: ");
+				table.getIOHandler().println("Your options: ");
 				for(Card c : legal) {
-					System.out.println("Enter " + clooper + " to: Play your " + c + ".");
+					table.getIOHandler().println("Enter " + clooper + " to: Play your " + c + ".");
 					clooper++;
 				}
 			} else {
-				System.out.println("You have no legal cards!\nEnter 1 to: Draw a card.");
+				table.getIOHandler().println("You have no legal cards!\nEnter 1 to: Draw a card.");
 			}
 			
-			System.out.println("Enter " + (lsize + 2) + " to: Shout EINS!");
-			System.out.println("Enter " + (lsize + 3) + " to: Accuse players of forgetting to shout EINS!");
-			System.out.println("Enter " + (lsize + 4) + " to: See a list of current players and how many cards they have!");
-			System.out.println("Enter " + (lsize + 5) + " to: Quit the game.");
+			table.getIOHandler().println("Enter " + (lsize + 2) + " to: Shout EINS!");
+			table.getIOHandler().println("Enter " + (lsize + 3) + " to: Accuse players of forgetting to shout EINS!");
+			table.getIOHandler().println("Enter " + (lsize + 4) + " to: See a list of current players and how many cards they have!");
+			table.getIOHandler().println("Enter " + (lsize + 5) + " to: Quit the game.");
 			
 			userInput = -1;
 			
-			System.out.println("Enter a number corresponding to the above menu of choices. For help, enter 0.");
-			System.out.flush();
+			table.getIOHandler().println("Enter a number corresponding to the above menu of choices. For help, enter 0.");
+			// readInt() will cause a flush here
 			
 			try {
-				if(scanner.hasNextInt()) {
-					userInput = scanner.nextInt();
-				} else {
-					scanner = new Scanner(System.in);
-				}
+				userInput = table.getIOHandler().readInt();
 			} catch(InputMismatchException ime) {
-				System.out.println("Only type in a number, nothing else!");
+				table.getIOHandler().println("\nOnly type in a number, nothing else!\n");
 				userInput = -1;
 			} catch(NoSuchElementException nsee) {
-				System.out.println("NSEE: " + nsee);
-				System.out.println("userInput = " + userInput);
+				table.getIOHandler().printErrorln("NSEE: " + nsee);
+				table.getIOHandler().printErrorln("userInput = " + userInput);
 				userInput = -1;
-			} finally {
-//				scanner.close();
-				//scanner = new Scanner(System.in);
 			}
-			
-			System.out.flush();
 		
 			if(userInput == 1 && lsize == 0) {
 				break;
 			}
 			
 			if(userInput < 0 || userInput > (lsize + 5)) {
-				System.out.println("Enter a number between 0 and " + (lsize + 5) + ", not including " + (lsize + 1) + "!");
+				table.getIOHandler().println("Enter a number between 0 and " + (lsize + 5) + ", not including " + (lsize + 1) + "!");
 			} else if(userInput == 0) {
-				System.out.println("Choose one of the options shown above. For example, enter " + (lsize + 2) + " to shout EINS!");
+				table.getIOHandler().println("Choose one of the options shown above. For example, enter " + (lsize + 2) + " to shout EINS!");
 			} else if(userInput == lsize + 2) {
-				// The user chose to shout eins, which means we handle that and let them enter another menu option.
-				int bcc = countCards();
-				
-				sayEins();
-				
-				if(countCards() > bcc) {
-					reprint = true; // picked up some cards so need to print our new hand
-					try { Thread.sleep(1000); } catch(InterruptedException ie) {}
+				if(!didSayEINS) { // make sure the user didn't already shout EINS this turn.
+					// The user chose to shout eins, which means we handle that and let them enter another menu option.
+					int bcc = countCards();
+					table.getIOHandler().doDelay(1000);
+					sayEins();
+					if(countCards() > bcc) {
+						reprint = true; // picked up some cards so need to print our new hand
+						table.getIOHandler().doDelay(2500);
+					}
+					
+					didSayEINS = true;
+				} else {
+					table.getIOHandler().println("You already shouted EINS this turn!");
 				}
+				
 				userInput = -1;
 			} else if(userInput == lsize + 3) {
-				// The user chose to accuse the last player of forgetting to shout eins, so we handle that and let them choose a new menu option.
-				int bcc = countCards();
-				
-				accuseEins();
-				
-				if(bcc < countCards()) {
-					reprint = true;
-					try {Thread.sleep(1000); } catch(InterruptedException ie) {}
+				if(!didAccuse) {
+					// The user chose to accuse the last player of forgetting to shout eins, so we handle that and let them choose a new menu option.
+					int bcc = countCards();
+					table.getIOHandler().doDelay(1000);
+					accuseEins();
+					
+					if(countCards() > bcc) {
+						reprint = true;
+						table.getIOHandler().doDelay(2500);
+					}
+					
+					didAccuse = true;
+				} else {
+					table.getIOHandler().println("You already accused others of not saying EINS this turn!");
 				}
-				
+			
 				userInput = -1;
 			} else if(userInput == lsize + 4) {
 				// The user wants to see a list of current players.
-				System.out.println();
+				table.getIOHandler().print("\n");
 				table.printPlayers();
-				System.out.println();
+				table.getIOHandler().print("\n");
 				userInput = -1;
 			} else if(userInput == lsize + 5) {
 				// Need to quit!
@@ -154,28 +160,27 @@ public class HumanPlayer extends CardEntity {
 			playCard(legal.elementAt(userInput-1));
 		} else { // if there aren't legal moves, all there is left is to draw.
 			Card drawn = takeCard(table.getDeck());
-			System.out.println(getName() + " drew " + drawn + "!");
+			table.getIOHandler().println(getName() + " drew " + drawn + "!");
 			if(table.isLegal(drawn)) {
 				// need to show another menu to allow for human players to say EINS
 				int secondInput = -1;
 				//scanner = new Scanner(System.in);
 				
 				do {
-					System.out.println("\nChoose what to do:");
-					System.out.println("Enter 1 to: Play the " + drawn + " you just picked up!");
-					System.out.println("Enter 2 to: Shout EINS!");
+					table.getIOHandler().println("\nChoose what to do:");
+					table.getIOHandler().println("Enter 1 to: Play the " + drawn + " you just picked up!");
+					table.getIOHandler().println("Enter 2 to: Shout EINS!");
+					// readInt will cause a flush here.
 					
 					try {
-						secondInput = scanner.nextInt();
+						secondInput = table.getIOHandler().readInt();
 					} catch(InputMismatchException ime) {
-						System.out.println("Only type in a number, nothing else!");
+						table.getIOHandler().println("Only type in a number, nothing else!");
 						secondInput = -1;
 					} catch(NoSuchElementException nsee) {
-						System.out.println("NSEE: " + nsee);
-						System.out.println("userInput = " + secondInput);
+						table.getIOHandler().printErrorln("NSEE: " + nsee);
+						table.getIOHandler().printErrorln("userInput = " + secondInput);
 						secondInput = -1;
-					} finally {
-						scanner = new Scanner(System.in);
 					}
 					
 					if(secondInput == 1) {
@@ -193,8 +198,7 @@ public class HumanPlayer extends CardEntity {
 			}
 		}
 		
-		System.out.println("~~~~~");
-		if(scanner != null) scanner.close();
+		table.getIOHandler().println("~~~~~");
 	}
 	
 	/**
@@ -204,22 +208,24 @@ public class HumanPlayer extends CardEntity {
 	 */
 	@Override
 	public CardColour askForColour() {
-		Scanner input = new Scanner(System.in);
 		String ncol = new String();
 		String first = new String();
 		
 		do {
-			System.out.println("Input the colour you want to change to. Either (R)ed, (G)reen, (B)lue, or (Y)ellow. Only the first character of your input will be considered.");
+			table.getIOHandler().println("Input the colour you want to change to. Either (R)ed, (G)reen, (B)lue, or (Y)ellow. Only the first character of your input will be considered.");
+			// readString will cause a flush here
 			
 			try {
-				ncol = input.nextLine();
+				ncol = table.getIOHandler().readString();
 			} catch(InputMismatchException ime) {
 				ncol = "";
 			}
 			
-			first = Character.toString(ncol.charAt(0));
+			if(ncol.length() != 0) {
+				first = Character.toString(ncol.charAt(0));
 			
-			if(first.compareToIgnoreCase("R") == 0 || first.compareToIgnoreCase("G") == 0 || first.compareToIgnoreCase("B") == 0 || first.compareToIgnoreCase("Y") == 0) break;
+				if(first.compareToIgnoreCase("R") == 0 || first.compareToIgnoreCase("G") == 0 || first.compareToIgnoreCase("B") == 0 || first.compareToIgnoreCase("Y") == 0) break;
+			}
 		} while(true);
 		
 		CardColour choice = CardColour.BLACK; // if we actually return BLACK something has gone horifically wrong.
@@ -233,9 +239,6 @@ public class HumanPlayer extends CardEntity {
 		} else if(first.compareToIgnoreCase("Y") == 0) {
 			choice = CardColour.YELLOW;
 		}
-		
-		//System.out.println("Choice was: " + choice);
-		input.close();
 		
 		return choice;
 	}

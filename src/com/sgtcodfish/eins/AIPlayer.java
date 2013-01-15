@@ -44,22 +44,10 @@ public class AIPlayer extends CardEntity {
 	 */
 	@Override
 	public void doTurn() throws IllegalArgumentException, IllegalStateException {
-		// sleep for a bit so the user isn't overwhelmed with output
-		try {
-			final int DELAY = 700;
-			
-			System.out.print(difficulty + " AI (" + getName() + ") engaged. Calculating move");
-			
-			Thread.sleep(DELAY);
-			System.out.print(".");
-			
-			Thread.sleep(DELAY);
-			System.out.print(".");
-			
-			Thread.sleep(DELAY);
-			System.out.println(".");
-		} catch(InterruptedException ie) {}
+		table.getIOHandler().print(difficulty + " AI (" + getName() + ") engaged. Calculating move");
 		
+		if(table.shouldSleep()) table.getIOHandler().doDelay(2100);
+
 		if(difficulty == AIDifficulty.REGULAR) {
 			doTurnRegular();
 		} else if(difficulty == AIDifficulty.BEST) {
@@ -97,12 +85,12 @@ public class AIPlayer extends CardEntity {
 		
 		if(legal.size() == 0) {
 			// no legal cards so draw (and play then if possible)
-			System.out.println("REGULAR AI: No legal cards found, drawing...");
+			table.getIOHandler().println("REGULAR AI: No legal cards found, drawing card.");
 			Card latest = table.getDeck().takeCard();
 			takeCard(latest);
 			if(table.isLegal(latest)) {
 				// we can play our new card!
-				System.out.println("REGULAR AI: Drawn card is legal, playing " + latest + "!");
+				table.getIOHandler().println("REGULAR AI: Drawn card is legal, playing " + latest + "!");
 				
 				if(countCards() == 2) {
 					// we're going to have EINS again, so we need to say it 90% of the time
@@ -165,11 +153,11 @@ public class AIPlayer extends CardEntity {
 		
 		if(legal.size() == 0) {
 			// we don't have any legal moves to play, so we need to draw a card.
-			System.out.println("BEST AI: No legal cards found, drawing card.");
+			table.getIOHandler().println("BEST AI: No legal cards found, drawing card.");
 			Card latest = table.getDeck().takeCard();
 			takeCard(latest);
 			if(table.isLegal(latest)) {
-				System.out.println("BEST AI: Drawn card is legal, playing " + latest + "!");
+				table.getIOHandler().println("BEST AI: Drawn card is legal, playing " + latest + "!");
 				
 				if(countCards() == 2) { // always say EINS if we need to.
 					sayEins();

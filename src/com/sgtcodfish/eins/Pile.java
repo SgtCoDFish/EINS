@@ -66,6 +66,10 @@ public class Pile {
 		d.reseed(cards);
 		
 		if(cards.size() != 0) {
+			for(Card c : cards) {
+				System.out.println(c);
+			}
+			
 			throw new IllegalStateException("deck.reseed(Stack<Card>) didn't empty the pile.");
 		}
 		

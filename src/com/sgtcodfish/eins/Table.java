@@ -25,11 +25,16 @@ public class Table {
 	protected boolean reversed; // true if we're going counterclockwise, false if normal.
 	protected boolean endRequested; // true if a player wants the game to end.
 	
+	protected EINSIOHandler output;
+	
+	protected boolean nosleep; // used if the user chose to have just AI battling to speed up.
+	
 	/**
 	 * Creates a new table of players with 1 human player using the specified name and numplayers computer players.
 	 * @param numplayers The number of AI players at the table, must be a positive integer.
 	 */
-	public Table(String playerName, int numplayers, AIDifficulty diff) throws IllegalArgumentException {
+	public Table(EINSIOHandler nout, String playerName, int numplayers, AIDifficulty diff) throws IllegalArgumentException {
+		output = nout;
 		deck = new Deck(this);
 		deck.shuffle();
 		pile = new Pile(deck, this);
@@ -47,7 +52,21 @@ public class Table {
 			throw new IllegalArgumentException("Trying to start a game with too many (" + numplayers + ") players, leaving too few cards in the deck!");
 		}
 		
-		players.add(new HumanPlayer(playerName));
+		if(playerName != null) {
+			players.add(new HumanPlayer(playerName));
+			nosleep = false;
+		} else {
+			// if playerName == null, we do a special AI only game.
+			AIDifficulty otherDiff = null;
+			if(diff == AIDifficulty.BEST) {
+				otherDiff = AIDifficulty.REGULAR;
+			} else {
+				otherDiff = AIDifficulty.BEST;
+			}
+			players.add(new AIPlayer("Special Computer", otherDiff));
+			nosleep = true;
+		}
+		
 		for(int i = 0; i < numplayers; i++) {
 			players.add(new AIPlayer("Computer " + (i+1), diff));
 		}
@@ -65,7 +84,7 @@ public class Table {
 			switch(pile.getTopCard().getType()) {
 			case SKIP:
 				// if the first card is a STOP the player who would start misses their turn.
-				System.out.println(players.elementAt(currentPlayer).getName() + " misses their turn since the first card was a " + pile.getTopCard().getType() + "!");
+				getIOHandler().println(players.elementAt(currentPlayer).getName() + " misses their turn since the first card was a " + pile.getTopCard().getType() + "!");
 				advanceCurrentPlayer();
 				break;
 				
@@ -75,7 +94,7 @@ public class Table {
 					getCurrentPlayer().takeCard(deck);
 				}
 				
-				System.out.println(players.elementAt(currentPlayer).getName() +
+				getIOHandler().println(players.elementAt(currentPlayer).getName() +
 						" misses their turn and draws two cards since the first card was a " + pile.getTopCard().getType() + "!");
 				advanceCurrentPlayer();
 				break;
@@ -83,16 +102,16 @@ public class Table {
 			case REVERSE:
 				// if the first card is a REVERSE, the order of play is reversed and we start on the "dealer" (i.e. player 0)
 				reversed = !reversed;
-				System.out.println(players.elementAt(currentPlayer).getName() + " misses their turn since the first card was a " + pile.getTopCard().getType() + "!");
-				System.out.println("The direction of play has also been reversed!");
+				getIOHandler().println(players.elementAt(currentPlayer).getName() + " misses their turn since the first card was a " + pile.getTopCard().getType() + "!");
+				getIOHandler().println("The direction of play has also been reversed!");
 				advanceCurrentPlayer();
 				break;
 				
 			case CHANGECOL:
 				// starting with CHANGECOL means the first player gets to choose the starting colour.
-				System.out.println("The first card is " + pile.getTopCard().getType() + " so " + players.elementAt(currentPlayer) + " chooses the starting colour!");
+				getIOHandler().println("The first card is " + pile.getTopCard().getType() + " so " + players.elementAt(currentPlayer) + " chooses the starting colour!");
 				currentColour = getCurrentPlayer().askForColour();
-				System.out.println(players.elementAt(currentPlayer).getName() + " chose " + currentColour + " as the starting colour!");
+				getIOHandler().println(players.elementAt(currentPlayer).getName() + " chose " + currentColour + " as the starting colour!");
 				break;
 				
 			case CHANGECOLFOUR:
@@ -100,12 +119,14 @@ public class Table {
 				for(int i = 0; i < 3; i++) {
 					getCurrentPlayer().takeCard(deck);
 				}
-				System.out.println("The first card is " + pile.getTopCard().getType() +
+				getIOHandler().println("The first card is " + pile.getTopCard().getType() +
 						" so " + players.elementAt(currentPlayer).getName() + " misses their turn and draws four cards!");
+				
 				advanceCurrentPlayer();
-				System.out.println(getCurrentPlayer().getName() + " gets to choose the starting colour!");
+				
+				getIOHandler().println(getCurrentPlayer().getName() + " gets to choose the starting colour!");
 				currentColour = getCurrentPlayer().askForColour();
-				System.out.println(players.elementAt(currentPlayer).getName() + " chose " + currentColour + " as the starting colour!");
+				getIOHandler().println(players.elementAt(currentPlayer).getName() + " chose " + currentColour + " as the starting colour!");
 				break;
 			case NUMBER:
 				break;
@@ -114,7 +135,8 @@ public class Table {
 			}
 		}
 		
-		System.out.println();
+		getIOHandler().print("\n");
+		getIOHandler().flush();
 	}
 	
 	/**
@@ -124,31 +146,31 @@ public class Table {
 		try {
 			//System.out.println("Top card: " + pile.getTopCard() + (pile.getTopCard().getColour() == CardColour.BLACK ? "[Clr: " + getCurrentColour() + "]!" : "!"));
 			while(!endRequested) {
-				System.out.println("-----");
+				getIOHandler().println("-----");
 				
-				System.out.println("Top card: " + pile.getTopCard() + (pile.getTopCard().getColour() == CardColour.BLACK ? "[Clr: " + getCurrentColour() + "]!" : "!"));
-				System.out.println();
+				getIOHandler().println("Top card: " + pile.getTopCard() + (pile.getTopCard().getColour() == CardColour.BLACK ? "[Clr: " + getCurrentColour() + "]!" : "!"));
 				lastPlayer = currentPlayer;
 				getCurrentPlayer().doTurn();
 				
-				//pretty dirty way of telling if the current player is a human, but it'll do
-				System.out.println("-----");
+				getIOHandler().println("-----");
 				
-				System.out.println();
+				getIOHandler().print("\n");
 				
 				boolean won = false;
 				
 				for(CardEntity ce : players) {
 					if(ce.countCards() == 0) {
 						// we have a winner!
-						System.out.println(ce.getName() + " has won this game!");
+						getIOHandler().println(ce.getName() + " has won this game!");
 						won = true;
 					}
 				}
 				
+				getIOHandler().flush();
+				
 				if(won) break;
 				
-				Thread.sleep(1000); // makes the pace a little more reasonable
+				if(!nosleep) Thread.sleep(1000); // makes the pace a little more reasonable
 			}
 			
 //			System.out.println("Score tallies for this game:");
@@ -159,11 +181,11 @@ public class Table {
 			slist.addScores(players);
 			return endRequested;
 		} catch(IllegalArgumentException iae) {
-			System.out.println("Programming error! Please send an email to ashley_davis10419@hotmail.com as a bug report!\n" + iae);
+			getIOHandler().printErrorln("Programming error! " + iae);
 		} catch(IllegalStateException ise) {
-			System.out.println("Something weird happened! Please send an email to ashley_davis10419@hotmail.com as a bug report!" + ise);
+			getIOHandler().printErrorln("Something weird happened! " + ise);
 		} catch(Exception e) {
-			System.out.println("Error!\nException: " + e);
+			getIOHandler().printErrorln("Error!\nException: " + e);
 		}
 		
 		return true;
@@ -203,9 +225,9 @@ public class Table {
 		// Check if it's a legal move.
 		if(ncard.getColour() == CardColour.BLACK) {
 			// for both cards, the player that played them gets to choose the colour.
-			System.out.println(players.elementAt(currentPlayer).getName() + " played a " + ncard.getType() + "!");
+			getIOHandler().println(players.elementAt(currentPlayer).getName() + " played a " + ncard.getType() + "!");
 			currentColour = ent.askForColour();
-			System.out.println(players.elementAt(currentPlayer).getName() + " chose " + currentColour + " as the new colour!");
+			getIOHandler().println(players.elementAt(currentPlayer).getName() + " chose " + currentColour + " as the new colour!");
 			advanceCurrentPlayer();
 			
 			if(ncard.getType() == CardType.CHANGECOLFOUR) { // now make the next player draw 4 cards and miss their go if that's the card that was played
@@ -213,7 +235,7 @@ public class Table {
 					getCurrentPlayer().takeCard(deck);
 				}
 				
-				System.out.println(players.elementAt(currentPlayer).getName() + " misses their turn and draws four cards!");
+				getIOHandler().println(players.elementAt(currentPlayer).getName() + " misses their turn and draws four cards!");
 				advanceCurrentPlayer();
 			}
 			
@@ -223,9 +245,9 @@ public class Table {
 			
 			if(ncard.getType() == pType && ncard.getValue() == peeked.getValue()) { // while legal, we need to chance the currentColour if we're changing because of a type match
 				currentColour = ncard.getColour();
-				System.out.println(players.elementAt(currentPlayer).getName() + " played " + ncard + ", changing the colour to " + ncard.getColour() + "!");
+				getIOHandler().println(players.elementAt(currentPlayer).getName() + " played " + ncard + ", changing the colour to " + ncard.getColour() + "!");
 			} else {
-				System.out.println(players.elementAt(currentPlayer).getName() + " played " + ncard + "!");
+				getIOHandler().println(players.elementAt(currentPlayer).getName() + " played " + ncard + "!");
 			}
 			
 			// if ncard isn't a number card, we have additional actions to take
@@ -233,12 +255,12 @@ public class Table {
 				switch (ncard.getType()) {
 				case SKIP:
 					advanceCurrentPlayer();
-					System.out.println(players.elementAt(currentPlayer).getName() + " misses their turn!");
+					getIOHandler().println(players.elementAt(currentPlayer).getName() + " misses their turn!");
 					break;
 					
 				case REVERSE:
 					reversed = !reversed;
-					System.out.println("The order of play is reversed! Direction of play is now " + (reversed ? "counter-clockwise" : "clockwise") + "!");
+					getIOHandler().println("The order of play is reversed! Direction of play is now " + (reversed ? "counter-clockwise" : "clockwise") + "!");
 					break;
 					
 				case PICKTWO:
@@ -247,7 +269,7 @@ public class Table {
 						getCurrentPlayer().takeCard(deck);
 					}
 					
-					System.out.println(players.elementAt(currentPlayer).getName() + " misses their turn and draws two cards!");
+					getIOHandler().println(players.elementAt(currentPlayer).getName() + " misses their turn and draws two cards!");
 				case CHANGECOL:
 					break;
 				case CHANGECOLFOUR:
@@ -301,75 +323,26 @@ public class Table {
 		return false;
 	}
 	
-////OLD + DEPRECATED + REPLACED
-//	/**
-//	 * Handles a player shouting EINS, and "protects" them from accusations of not saying it from the next player
-//	 * @param player The player who shouted EINS
-//	 */
-//	public void sayEins(CardEntity ce) {
-//		saidEins = true;
-//		System.out.println(ce.getName() + " shouted EINS!");
-//	}
-//	
-//	/**
-//	 * Handles a player accusing the previous player of not saying eins.
-//	 * If they accuse correctly, the previous player draws two cards.
-//	 * If they accuse incorrectly, the accusor draws two cards.
-//	 */
-//	public void accuseEins(CardEntity accusor) {
-//		CardEntity lp = players.elementAt(lastPlayer);
-//		System.out.print("\n" + accusor.getName() + " accuses " + lp.getName() + " of forgetting to say EINS");
-//		
-//		final int delay = 1000; // will be applied 3 times
-//		
-//		try {
-//			System.out.print(".");
-//			Thread.sleep(delay);
-//			
-//			System.out.print(".");
-//			Thread.sleep(delay);
-//			
-//			System.out.println(".");
-//			Thread.sleep(delay);
-//		} catch(InterruptedException ie) {
-//			// ...
-//		}
-//		
-//		if(lp.countCards() == 1 && saidEins == false) {
-//			// last player forgot to say eins, punish them
-//			System.out.println(lp.getName() + " forgot to say EINS and has to draw 2 cards!");
-//			players.elementAt(lastPlayer).takeCard(deck);
-//			players.elementAt(lastPlayer).takeCard(deck);
-//		} else {
-//			// false 
-//			System.out.println("But " + lp.getName() + " has " + lp.countCards() + " cards, so " + accusor.getName() + " draws two cards for the false accusation!");
-//			accusor.takeCard(deck);
-//			accusor.takeCard(deck);
-//		}
-//		System.out.println();
-//	}
-	
 	/**
 	 * Accuses all players but the accusor of having forgotten to say EINS. Any players who have 1 card and for whom hasSaidEins returns false draw two cards.
 	 * If there is not at least one player who forgot to say EINS, the accusor draws two cards.
 	 */
 	public void accuseEins(CardEntity accusor) {
-		
-		System.out.println(accusor.getName() + " accuses all players of forgetting to say EINS!");
+		getIOHandler().println(accusor.getName() + " accuses all players of forgetting to say EINS!");
 		
 		if(checkEins()) {
 			for(CardEntity ce : players) {
 				if(ce != accusor) { // let's not make the accusor accuse themselves.
 					if(ce.countCards() == 1 && !ce.hasSaidEins()) {
 						// this entity forgot to say eins and has one card so is punished by drawing two cards
-						System.out.println(ce.getName() + " has only one card and has forgotten to say EINS! They draw two cards as punishment.");
+						getIOHandler().println(ce.getName() + " has only one card and has forgotten to say EINS! They draw two cards as punishment.");
 						ce.takeCard(deck);
 						ce.takeCard(deck);
 					}
 				}
 			}
 		} else {
-			System.out.println(accusor.getName() + "\'s accusation was incorrect and so draws two cards as punishment.");
+			getIOHandler().println(accusor.getName() + "\'s accusation was incorrect and so draws two cards as punishment.");
 			accusor.takeCard(deck);
 			accusor.takeCard(deck);
 		}
@@ -411,6 +384,13 @@ public class Table {
 				currentPlayer = (players.size() - 1);
 			}
 		}
+	}
+	
+	/**
+	 * @return The EINSOutputHandler implementation this Table was initialised with.
+	 */
+	public EINSIOHandler getIOHandler() {
+		return output;
 	}
 	
 	/**
@@ -474,11 +454,9 @@ public class Table {
 	 * Prints a list of all current players, and their hand sizes.
 	 */
 	public void printPlayers() {
-	//	int playerLoop = 1;
 		for(CardEntity ce : players) {
 			int thisCardCount = ce.countCards();
-			System.out.println(ce.getName() + " has " + thisCardCount + (thisCardCount == 1 ? " card!" : " cards!"));
-	//		playerLoop++;
+			getIOHandler().println(ce.getName() + " has " + thisCardCount + (thisCardCount == 1 ? " card!" : " cards!"));
 		}
 	}
 	
@@ -487,5 +465,12 @@ public class Table {
 	 */
 	public void reseedDeck() {
 		pile.reseed(deck);
+	}
+	
+	/**
+	 * @return false if nosleep is true. Used by AI to work out if they should simulate "thinking time" in their turn.
+	 */
+	public boolean shouldSleep() {
+		return (!nosleep);
 	}
 }

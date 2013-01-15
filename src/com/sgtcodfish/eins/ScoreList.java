@@ -80,38 +80,39 @@ public class ScoreList {
 	/**
 	 * Prints all the current scores
 	 */
-	public void printScores() {
-		System.out.println();
+	public void printScores(EINSIOHandler io) {
+		io.print("\n");
+		
 		for(int i = 0; i < 10; i++) {
-			System.out.print("><");
+			io.print("><");
 		}
 		
-		System.out.println("\nCurrent standings:");
+		io.println("\nCurrent standings:");
 		int val = -1;
 		
 		for(String key : hash.keySet()) {
 			val = hash.get(key);
-			System.out.println(key + " has " + val + (val == 1 ? " point!" : " points!"));
+			io.println(key + " has " + val + (val == 1 ? " point!" : " points!"));
 		}
 		
 		for(int i = 0; i < 10; i++) {
-			System.out.print("><");
+			io.print("><");
 		}
 		
-		System.out.println();
+		io.print("\n");
 	}
 	
 	/**
 	 * Prints the scores, ordered from highest value to lowest.
 	 */
-	public void printScoresFinal() {		
+	public void printScoresFinal(EINSIOHandler io) {		
 		TreeMap<String, Integer> sortedMap = new TreeMap<String, Integer>(new HashComparator(hash));
 		sortedMap.putAll(hash);
 		
 		int lcount = 0;
 		for(String s : sortedMap.keySet()) {
 			lcount++;
-			System.out.println("In position " + lcount + " we have " + s + " with a score of: " + hash.get(s));
+			io.println("In position " + lcount + " we have " + s + " with a score of: " + hash.get(s));
 		}
 	}
 	

@@ -176,13 +176,10 @@ abstract public class CardEntity {
 	 * Prints the Entity's hand to System.out
 	 */
 	public void printHand() {
-		//int cardCount = 1;
-		
-		System.out.println(name + "\'s cards:");
+		table.getIOHandler().println(name + "\'s cards:");
 		
 		for(Card c : cards) {
-			System.out.println(c);
-		//	cardCount++;
+			table.getIOHandler().println(c.toString());
 		}
 	}
 	
@@ -203,10 +200,10 @@ abstract public class CardEntity {
 	 */
 	public void sayEins() {
 		if(countCards() == 2) {
-			System.out.println(name + " shouts EINS!");
+			table.getIOHandler().println(name + " shouts EINS!");
 			saidEins = true;
 		} else {
-			System.out.println(name + " says EINS incorrectly, and draws two cards as punishment.");
+			table.getIOHandler().println(name + " says EINS incorrectly, and draws two cards as punishment.");
 			takeCard(table.getDeck());
 			takeCard(table.getDeck());
 		}
