@@ -105,5 +105,6 @@ public class Eins {
 		
 		io.println("\nThanks for playing!");
 		io.flush();
+		io.readString(true);
 	}
 }
